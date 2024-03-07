@@ -81,6 +81,8 @@ use crate::linalg::basic::arrays::{Array1, Array2, MutArrayView1};
 use crate::numbers::basenum::Number;
 use crate::rand_custom::get_rng_impl;
 
+use super::{impurity, SplitCriterion};
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 /// Parameters of Decision Tree
@@ -141,19 +143,6 @@ impl<TX: Number + PartialOrd, TY: Number + Ord, X: Array2<TX>, Y: Array1<TY>>
     pub fn depth(&self) -> u16 {
         self.depth
     }
-}
-
-/// The function to measure the quality of a split.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Default)]
-pub enum SplitCriterion {
-    /// [Gini index](../decision_tree_classifier/index.html)
-    #[default]
-    Gini,
-    /// [Entropy](../decision_tree_classifier/index.html)
-    Entropy,
-    /// [Classification error](../decision_tree_classifier/index.html)
-    ClassificationError,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -427,41 +416,6 @@ struct NodeVisitor<'a, TX: Number + PartialOrd, X: Array2<TX>> {
     false_child_output: usize,
     level: u16,
     phantom: PhantomData<&'a TX>,
-}
-
-fn impurity(criterion: &SplitCriterion, count: &[usize], n: usize) -> f64 {
-    let mut impurity = 0f64;
-
-    match criterion {
-        SplitCriterion::Gini => {
-            impurity = 1f64;
-            for count_i in count.iter() {
-                if *count_i > 0 {
-                    let p = *count_i as f64 / n as f64;
-                    impurity -= p * p;
-                }
-            }
-        }
-
-        SplitCriterion::Entropy => {
-            for count_i in count.iter() {
-                if *count_i > 0 {
-                    let p = *count_i as f64 / n as f64;
-                    impurity -= p * p.log2();
-                }
-            }
-        }
-        SplitCriterion::ClassificationError => {
-            for count_i in count.iter() {
-                if *count_i > 0 {
-                    impurity = impurity.max(*count_i as f64 / n as f64);
-                }
-            }
-            impurity = (1f64 - impurity).abs();
-        }
-    }
-
-    impurity
 }
 
 impl<'a, TX: Number + PartialOrd, X: Array2<TX>> NodeVisitor<'a, TX, X> {
