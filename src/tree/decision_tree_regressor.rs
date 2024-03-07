@@ -670,9 +670,11 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
 
         let true_child_idx = self.nodes().len();
 
-        self.nodes.push(Node::new(visitor.true_child_output));
+        self.nodes
+            .push(Node::new(visitor.true_child_output, true_child_idx));
         let false_child_idx = self.nodes().len();
-        self.nodes.push(Node::new(visitor.false_child_output));
+        self.nodes
+            .push(Node::new(visitor.false_child_output, false_child_idx));
 
         self.nodes[visitor.node].true_child = Some(true_child_idx);
         self.nodes[visitor.node].false_child = Some(false_child_idx);
