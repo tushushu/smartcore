@@ -101,6 +101,7 @@ pub struct DecisionTreeRegressor<TX: Number + PartialOrd, TY: Number, X: Array2<
     nodes: Vec<Node>,
     parameters: Option<DecisionTreeRegressorParameters>,
     depth: u16,
+    num_features: usize,
     _phantom_tx: PhantomData<TX>,
     _phantom_ty: PhantomData<TY>,
     _phantom_x: PhantomData<X>,
@@ -128,11 +129,13 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
 #[derive(Debug, Clone)]
 struct Node {
     output: f64,
+    n_node_samples: usize,
     split_feature: usize,
     split_value: Option<f64>,
     split_score: Option<f64>,
     true_child: Option<usize>,
     false_child: Option<usize>,
+    impurity: Option<f64>,
 }
 
 impl DecisionTreeRegressorParameters {
@@ -297,14 +300,16 @@ impl Default for DecisionTreeRegressorSearchParameters {
 }
 
 impl Node {
-    fn new(output: f64) -> Self {
+    fn new(output: f64, n_node_samples: usize) -> Self {
         Node {
             output,
+            n_node_samples,
             split_feature: 0,
             split_value: Option::None,
             split_score: Option::None,
             true_child: Option::None,
             false_child: Option::None,
+            impurity: Option::None,
         }
     }
 }
@@ -389,6 +394,7 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
             nodes: vec![],
             parameters: Option::None,
             depth: 0u16,
+            num_features: 0usize,
             _phantom_tx: PhantomData,
             _phantom_ty: PhantomData,
             _phantom_x: PhantomData,
@@ -451,7 +457,7 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
             sum += *sample_i as f64 * y_m.get(i).to_f64().unwrap();
         }
 
-        let root = Node::new(sum / (n as f64));
+        let root = Node::new(sum / (n as f64), y_ncols);
         nodes.push(root);
         let mut order: Vec<Vec<usize>> = Vec::new();
 
@@ -464,6 +470,7 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
             nodes,
             parameters: Some(parameters),
             depth: 0u16,
+            num_features: num_attributes,
             _phantom_tx: PhantomData,
             _phantom_ty: PhantomData,
             _phantom_x: PhantomData,
@@ -663,9 +670,9 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
 
         let true_child_idx = self.nodes().len();
 
-        self.nodes.push(Node::new(visitor.true_child_output));
+        self.nodes.push(Node::new(visitor.true_child_output, tc));
         let false_child_idx = self.nodes().len();
-        self.nodes.push(Node::new(visitor.false_child_output));
+        self.nodes.push(Node::new(visitor.false_child_output, fc));
 
         self.nodes[visitor.node].true_child = Some(true_child_idx);
         self.nodes[visitor.node].false_child = Some(false_child_idx);
