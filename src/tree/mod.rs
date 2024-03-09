@@ -35,6 +35,8 @@ pub enum SplitCriterion {
     Entropy,
     /// [Classification error](../decision_tree_classifier/index.html)
     ClassificationError,
+    /// [MSE]
+    MSE,
 }
 
 fn impurity(criterion: &SplitCriterion, count: &[usize], n: usize) -> f64 {
