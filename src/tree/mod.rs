@@ -67,6 +67,11 @@ fn impurity(criterion: &SplitCriterion, count: &[usize], n: usize) -> f64 {
             }
             impurity = (1f64 - impurity).abs();
         }
+        SplitCriterion::MSE => {
+            let square_sum_total = count.iter().map(|x| x * x).sum::<usize>();
+            let mean = count.iter().sum::<usize>() as f64 / n as f64;
+            impurity = square_sum_total as f64 / n as f64 - mean * mean;
+        }
     }
 
     impurity
