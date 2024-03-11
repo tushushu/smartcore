@@ -551,6 +551,8 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
         }
 
         let sum = self.nodes()[visitor.node].output * n as f64;
+        let sq_sum =
+            self.nodes()[visitor.node].impurity.unwrap_or(0f64) * n as f64 + sum * sum / n as f64;
 
         let mut variables = (0..n_attr).collect::<Vec<_>>();
 
@@ -562,7 +564,7 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
             n as f64 * self.nodes()[visitor.node].output * self.nodes()[visitor.node].output;
 
         for variable in variables.iter().take(mtry) {
-            self.find_best_split(visitor, n, sum, parent_gain, *variable);
+            self.find_best_split(visitor, n, sum, sq_sum, parent_gain, *variable);
         }
 
         self.nodes()[visitor.node].split_score.is_some()
@@ -573,10 +575,12 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
         visitor: &mut NodeVisitor<'_, TX, TY, X, Y>,
         n: usize,
         sum: f64,
+        sq_sum: f64,
         parent_gain: f64,
         j: usize,
     ) {
         let mut true_sum = 0f64;
+        let mut true_sq_sum = 0f64;
         let mut true_count = 0;
         let mut prevx = Option::None;
 
@@ -588,6 +592,9 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
                     prevx = Some(x_ij);
                     true_count += visitor.samples[*i];
                     true_sum += visitor.samples[*i] as f64 * visitor.y.get(*i).to_f64().unwrap();
+                    true_sq_sum += visitor.samples[*i] as f64
+                        * visitor.y.get(*i).to_f64().unwrap()
+                        * visitor.y.get(*i).to_f64().unwrap();
                     continue;
                 }
 
@@ -599,6 +606,9 @@ impl<TX: Number + PartialOrd, TY: Number, X: Array2<TX>, Y: Array1<TY>>
                     prevx = Some(x_ij);
                     true_count += visitor.samples[*i];
                     true_sum += visitor.samples[*i] as f64 * visitor.y.get(*i).to_f64().unwrap();
+                    true_sq_sum += visitor.samples[*i] as f64
+                        * visitor.y.get(*i).to_f64().unwrap()
+                        * visitor.y.get(*i).to_f64().unwrap();
                     continue;
                 }
 
